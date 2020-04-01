@@ -4,6 +4,8 @@
  //            Modified by Kunal Garg - 13/05/2018 (kgarg@cern.ch)
  //            Small modification by Giuseppe Mandaglio and Daniele Pistone 31/07/2019
  //            Modified by Giuseppe Mandaglio 19/12/2019 (check OOB)
+ //            Modified by Giuseppe Mandaglio and Antonina Rosano 
+ //            to update the procedure for signal-loss determination 01/04/2020
  //            Based on AddAnalysisTaskRsnMini
  //            pPb specific settings from AddTaskKStarPPB.C
  //
@@ -142,7 +144,7 @@ AliRsnCutSetDaughterParticle::ERsnDaughterCutSet cutPiCandidate =  AliRsnCutSetD
     AliRsnMiniAnalysisTask* task = new AliRsnMiniAnalysisTask(taskName.Data(),isMC);
 
     if(evtCutSetID==eventCutSet::kSpecial4 || evtCutSetID==eventCutSet::kSpecial5) task->UseESDTriggerMask(triggerMask); //ESD ****** check this *****
-    if(evtCutSetID!=eventCutSet::kNoEvtSel && evtCutSetID!=eventCutSet::kSpecial3 && evtCutSetID!=eventCutSet::kSpecial4) task->UseESDTriggerMask(triggerMask); //AOD
+    if(evtCutSetID!=eventCutSet::kNoEvtSel && evtCutSetID!=eventCutSet::kSpecial3 && evtCutSetID!=eventCutSet::kSpecial4  && evtCutSetID!=eventCutSet::kSpecial5) task->UseESDTriggerMask(triggerMask); //AOD
 
     task->UseMultiplicity("AliMultSelection_V0M");
 
@@ -172,7 +174,7 @@ AliRsnCutSetDaughterParticle::ERsnDaughterCutSet cutPiCandidate =  AliRsnCutSetD
     // - 4th argument --> tells if TPC stand-alone vertexes must be accepted
 
     AliRsnCutPrimaryVertex *cutVertex = 0;
-    if(evtCutSetID!=eventCutSet::kSpecial1 && evtCutSetID!=eventCutSet::kNoEvtSel && (!MultBins || fabs(vtxZcut-10.)>1.e-10)){
+  /*  if(evtCutSetID!=eventCutSet::kSpecial1 && evtCutSetID!=eventCutSet::kNoEvtSel && (!MultBins || fabs(vtxZcut-10.)>1.e-10)){
         cutVertex=new AliRsnCutPrimaryVertex("cutVertex",vtxZcut,0,kFALSE);
         if(!MultBins && evtCutSetID!=eventCutSet::kSpecial3){
             cutVertex->SetCheckZResolutionSPD();
@@ -181,22 +183,42 @@ AliRsnCutSetDaughterParticle::ERsnDaughterCutSet cutPiCandidate =  AliRsnCutSetD
         }
         if(evtCutSetID==eventCutSet::kSpecial3) cutVertex->SetCheckGeneratedVertexZ();
     }
+*/
+//*****Update to macro 	 AddTaskPhiPP13TeV_PID.C ********************************//
+ if(evtCutSetID!=eventCutSet::kSpecial1 && evtCutSetID!=eventCutSet::kNoEvtSel  && evtCutSetID!=eventCutSet::kSpecial5){
+    if(evtCutSetID==eventCutSet::kSpecial3 || evtCutSetID==eventCutSet::kSpecial4){
+      cutVertex=new AliRsnCutPrimaryVertex("cutVertex",vtxZcut,0,kFALSE);
+      cutVertex->SetCheckGeneratedVertexZ();
 
+    }else if(!MultBins || fabs(vtxZcut-10.)>1.e-10){
+      cutVertex=new AliRsnCutPrimaryVertex("cutVertex",vtxZcut,0,kFALSE);
+      if(!MultBins){
+        cutVertex->SetCheckZResolutionSPD();
+        cutVertex->SetCheckDispersionSPD();
+        cutVertex->SetCheckZDifferenceSPDTrack();
+      }
+    }
+  }
+//***********************************************************//
+	 
 
 
     AliRsnCutEventUtils* cutEventUtils=0;
     if(evtCutSetID!=eventCutSet::kNoEvtSel && evtCutSetID!=eventCutSet::kSpecial3){
         cutEventUtils=new AliRsnCutEventUtils("cutEventUtils",kTRUE,rejectPileUp);
-        if(!MultBins){
-        	cutEventUtils->SetRemovePileUppA2013(kFALSE);
-            cutEventUtils->SetCheckAcceptedMultSelection();
-            //cutEventUtils->SetCheckIncompleteDAQ();
-            //cutEventUtils->SetCheckSPDClusterVsTrackletBG();
+	if(evtCutSetID==eventCutSet::kSpecial4 || evtCutSetID!=eventCutSet::kSpecial5){
+		cutEventUtils->SetCheckInelGt0MC(); //from row 175 AddTaskPhiPP13TeV_PID.C macro
+	}
+        else if(!MultBins){
+            //cutEventUtils->SetRemovePileUppA2013(kFALSE);
+            //cutEventUtils->SetCheckAcceptedMultSelection();
+            cutEventUtils->SetCheckIncompleteDAQ();
+            cutEventUtils->SetCheckSPDClusterVsTrackletBG();
 			 // 	cutEventUtils->SetCheckInelGt0MC(kFALSE);
         }else{
             //cutEventUtils->SetCheckInelGt0SPDtracklets();
             cutEventUtils->SetRemovePileUppA2013(kFALSE);
-            cutEventUtils->SetCheckAcceptedMultSelection();
+           if(evtCutSetID!=eventCutSet::kSpecial1) cutEventUtils->SetCheckAcceptedMultSelection();
         }
     }
 
